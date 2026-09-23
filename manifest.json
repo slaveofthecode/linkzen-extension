@@ -11,9 +11,5 @@
     "action": {
         "default_popup": "src/popup/index.html",
         "default_icon": "icon.png"
-    },
-    "background": {
-        "service_worker": "src/background/index.ts",
-        "type": "module"
     }
 }

@@ -1,75 +1,56 @@
-# React + TypeScript + Vite
+# 🚀 LinkZen - Roadmap de Desarrollo
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+Extensión de Google Chrome (Manifest V3) diseñada para eliminar la barra de favoritos tradicional, centralizando los accesos directos clave en un único icono limpio y ofreciendo un motor de auditoría para limpiar URLs obsoletas.
 
-Currently, two official plugins are available:
+## 🛠️ Stack Tecnológico
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Oxc](https://oxc.rs)
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/)
+- **Core:** TypeScript, Vite.
+- **Estilos:** Tailwind CSS.
+- **APIs de Chrome:** `chrome.bookmarks`, `chrome.storage`, `chrome.tabs`.
+- **Entorno de desarrollo:** macOS, Cursor, Bun / Node.js.
 
-## React Compiler
+---
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+## 🗺️ Fases del Proyecto
 
-## Expanding the ESLint configuration
+### Stage 1: Scaffold y Configuración Base
 
-If you are developing a production application, we recommend updating the configuration to enable type-aware lint rules:
+- [x] Inicializar proyecto con Vite + TypeScript.
+- [x] Crear estructura de directorios (`src/background`, `src/popup`, `src/dashboard`).
+- [x] Configurar el `manifest.json` (Manifest V3) con permisos de `bookmarks` y `storage`.
+- [x] Configurar Tailwind CSS para los estilos de la interfaz.
 
-```js
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
+### Stage 2: Módulo Launcher (El Menú Único Minimalista)
 
-      // Remove tseslint.configs.recommended and replace with this
-      tseslint.configs.recommendedTypeChecked,
-      // Alternatively, use this for stricter rules
-      tseslint.configs.strictTypeChecked,
-      // Optionally, add this for stylistic rules
-      tseslint.configs.stylisticTypeChecked,
+- [x] Diseñar el Popup flotante que se abre al hacer clic en el único icono de la barra.
+- [x] Crear las secciones/categorías fijas (Ej: _Música, Trabajo, AI, Lecturas_).
+- [x] Implementar la lectura de enlaces clave mediante almacenamiento local o marcadores agrupados.
+- [x] Permitir abrir los links directamente en la pestaña actual o nueva.
 
-      // Other configs...
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
+### Stage 3: Motor de Auditoría y Red (`fetch`)
 
-```
+- [ ] Desarrollar el script en el background que lea la API `chrome.bookmarks.getTree()`.
+- [ ] Implementar función de verificación por lotes con `fetch` y control de concurrencia.
+- [ ] Lógica de clasificación:
+  - **Activos:** Código 200 OK.
+  - **Rotos:** Errores 404, 500, o fallos de red.
+  - **Sospechosos:** Discrepancia entre el título guardado y el título real de la página.
 
-You can also install [eslint-plugin-react-x](https://npmx.dev/package/eslint-plugin-react-x) and [eslint-plugin-react-dom](https://npmx.dev/package/eslint-plugin-react-dom) for React-specific lint rules:
+### Stage 4: Dashboard de Resolución Interactiva
 
-```js
-// eslint.config.js
-import reactX from 'eslint-plugin-react-x'
-import reactDom from 'eslint-plugin-react-dom'
+- [ ] Crear la vista `dashboard.html` como pestaña completa de auditoría.
+- [ ] Renderizar la lista de enlaces problemáticos detectados.
+- [ ] Añadir botones de acción rápida por enlace: **[Borrar]**, **[Actualizar Nombre]**, **[Mantener]**.
+- [ ] Conectar los botones con los métodos nativos `chrome.bookmarks.remove()` y `chrome.bookmarks.update()`.
 
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
-      // Enable lint rules for React
-      reactX.configs['recommended-typescript'],
-      // Enable lint rules for React DOM
-      reactDom.configs.recommended,
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
+### Stage 5: Pruebas Locales y QA en Mac
 
-```
+- [ ] Compilar con Vite (`npm run build`).
+- [ ] Cargar como extensión descomprimida en `chrome://extensions/`.
+- [ ] Probar rendimiento con un volumen alto de marcadores.
+
+### Stage 6: Publicación en Chrome Web Store
+
+- [ ] Generar assets finales (iconos de 128x128, capturas de pantalla).
+- [ ] Empaquetar en `.zip`.
+- [ ] Subir al Developer Dashboard y enviar a revisión.
