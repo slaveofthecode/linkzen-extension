@@ -1,0 +1,19 @@
+{
+    "manifest_version": 3,
+    "name": "LinkZen",
+    "version": "1.0.0",
+    "description": "Minimalist bookmark launcher and URL audit tool.",
+    "permissions": [
+        "bookmarks",
+        "storage",
+        "tabs"
+    ],
+    "action": {
+        "default_popup": "src/popup/index.html",
+        "default_icon": "icon.png"
+    },
+    "background": {
+        "service_worker": "src/background/index.ts",
+        "type": "module"
+    }
+}
