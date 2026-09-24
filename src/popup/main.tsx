@@ -1,6 +1,18 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import ReactDOM from 'react-dom/client';
 import '../index.css';
+import '../chromeMock';
+import type {
+	AuditProgress,
+	AuditRequest,
+	AuditResponse,
+	AuditSummary,
+} from '../types';
+import {
+	MESSAGE_AUDIT_RUN,
+	STORAGE_KEY_PROGRESS,
+	STORAGE_KEY_SUMMARY,
+} from '../types';
 
 interface QuickLink {
 	id: string;
@@ -43,13 +55,75 @@ const INITIAL_LINKS: QuickLink[] = [
 
 function PopupApp() {
 	const [links] = useState<QuickLink[]>(INITIAL_LINKS);
+	const [progress, setProgress] = useState<AuditProgress>({
+		running: false,
+		checked: 0,
+		total: 0,
+	});
+	const [summary, setSummary] = useState<AuditSummary | null>(null);
+	const [runError, setRunError] = useState<string | null>(null);
+
+	const isRunning = progress.running;
+
+	useEffect(() => {
+		chrome.storage.local.get(
+			[STORAGE_KEY_PROGRESS, STORAGE_KEY_SUMMARY],
+			(stored) => {
+				const p = stored[STORAGE_KEY_PROGRESS] as AuditProgress | undefined;
+				const s = stored[STORAGE_KEY_SUMMARY] as AuditSummary | undefined;
+				if (p) setProgress(p);
+				if (s) setSummary(s);
+			}
+		);
+
+		const onStorageChanged = (
+			changes: Record<string, chrome.storage.StorageChange>
+		) => {
+			if (changes[STORAGE_KEY_PROGRESS]) {
+				setProgress(changes[STORAGE_KEY_PROGRESS].newValue as AuditProgress);
+			}
+			if (changes[STORAGE_KEY_SUMMARY]) {
+				setSummary(changes[STORAGE_KEY_SUMMARY].newValue as AuditSummary);
+			}
+		};
+		chrome.storage.onChanged.addListener(onStorageChanged);
+		return () => chrome.storage.onChanged.removeListener(onStorageChanged);
+	}, []);
+
+	const handleRunAudit = () => {
+		setRunError(null);
+		const request: AuditRequest = { type: MESSAGE_AUDIT_RUN };
+		chrome.runtime.sendMessage(
+			request,
+			(response: AuditResponse | undefined) => {
+				if (chrome.runtime.lastError) {
+					setRunError(
+						chrome.runtime.lastError.message ??
+							'No response from the background service worker.'
+					);
+					return;
+				}
+				if (!response) {
+					setRunError('No response from the background service worker.');
+					return;
+				}
+				if (response.ok === false) setRunError(response.error);
+			}
+		);
+	};
 
 	const handleOpenDashboard = () => {
-		// Opens the full audit dashboard in a new tab
 		chrome.tabs.create({
 			url: chrome.runtime.getURL('src/dashboard/index.html'),
 		});
 	};
+
+	const analyzedLabel = isRunning
+		? `${progress.checked} / ${progress.total}`
+		: summary
+			? `${summary.total}`
+			: '—';
+	const issues = summary ? summary.broken + summary.suspicious : 0;
 
 	return (
 		<div className="w-95 bg-slate-900 text-slate-100 p-4 font-sans select-none">
@@ -95,19 +169,36 @@ function PopupApp() {
 				</h2>
 				<div className="flex items-center justify-between text-sm">
 					<span className="text-slate-300">Analyzed links</span>
-					<span className="font-semibold text-slate-100">342 / 350</span>
+					<span className="font-semibold text-slate-100">{analyzedLabel}</span>
 				</div>
-				<div className="mt-2 flex items-center space-x-1.5 text-amber-400 text-xs font-medium">
-					<span>⚠️</span>
-					<span>8 broken or suspicious links detected</span>
-				</div>
+				{issues > 0 && (
+					<div className="mt-2 flex items-center space-x-1.5 text-amber-400 text-xs font-medium">
+						<span>⚠️</span>
+						<span>{issues} broken or suspicious links detected</span>
+					</div>
+				)}
+				{runError && <p className="mt-2 text-xs text-red-400">{runError}</p>}
+				<button
+					onClick={handleRunAudit}
+					disabled={isRunning}
+					className="w-full mt-3 py-2 rounded-lg bg-slate-700/60 hover:bg-slate-700 text-slate-100 text-xs font-medium transition-all disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
+				>
+					{isRunning ? (
+						<span className="animate-pulse">
+							⏳ Auditing… {progress.checked}/{progress.total}
+						</span>
+					) : (
+						<span>▶ Run audit</span>
+					)}
+				</button>
 			</div>
 
 			{/* Audit Action Button */}
 			<div className="mt-5">
 				<button
 					onClick={handleOpenDashboard}
-					className="w-full py-2.5 px-4 rounded-xl bg-linear-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white font-medium text-sm shadow-md transition-all flex items-center justify-center space-x-2 cursor-pointer active:scale-98"
+					disabled={isRunning}
+					className="w-full py-2.5 px-4 rounded-xl bg-linear-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white font-medium text-sm shadow-md transition-all flex items-center justify-center space-x-2 cursor-pointer active:scale-98 disabled:opacity-50 disabled:cursor-not-allowed"
 				>
 					<span>🧹</span>
 					<span>Open Audit & Hygiene Panel</span>

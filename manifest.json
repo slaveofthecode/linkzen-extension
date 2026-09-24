@@ -8,6 +8,14 @@
         "storage",
         "tabs"
     ],
+    "host_permissions": [
+        "https://*/*",
+        "http://*/*"
+    ],
+    "background": {
+        "service_worker": "assets/background.js",
+        "type": "module"
+    },
     "action": {
         "default_popup": "src/popup/index.html",
         "default_icon": "icon.png"
