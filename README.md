@@ -29,19 +29,19 @@ Extensión de Google Chrome (Manifest V3) diseñada para eliminar la barra de fa
 
 ### Stage 3: Motor de Auditoría y Red (`fetch`)
 
-- [ ] Desarrollar el script en el background que lea la API `chrome.bookmarks.getTree()`.
-- [ ] Implementar función de verificación por lotes con `fetch` y control de concurrencia.
-- [ ] Lógica de clasificación:
+- [x] Desarrollar el script en el background que lea la API `chrome.bookmarks.getTree()`.
+- [x] Implementar función de verificación por lotes con `fetch` y control de concurrencia.
+- [x] Lógica de clasificación:
   - **Activos:** Código 200 OK.
   - **Rotos:** Errores 404, 500, o fallos de red.
   - **Sospechosos:** Discrepancia entre el título guardado y el título real de la página.
 
 ### Stage 4: Dashboard de Resolución Interactiva
 
-- [ ] Crear la vista `dashboard.html` como pestaña completa de auditoría.
-- [ ] Renderizar la lista de enlaces problemáticos detectados.
-- [ ] Añadir botones de acción rápida por enlace: **[Borrar]**, **[Actualizar Nombre]**, **[Mantener]**.
-- [ ] Conectar los botones con los métodos nativos `chrome.bookmarks.remove()` y `chrome.bookmarks.update()`.
+- [x] Crear la vista `dashboard.html` como pestaña completa de auditoría.
+- [x] Renderizar la lista de enlaces problemáticos detectados.
+- [x] Añadir botones de acción rápida por enlace: **[Borrar]**, **[Actualizar Nombre]**, **[Mantener]**.
+- [x] Conectar los botones con los métodos nativos `chrome.bookmarks.remove()` y `chrome.bookmarks.update()`.
 
 ### Stage 5: Pruebas Locales y QA en Mac
 
