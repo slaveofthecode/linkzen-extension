@@ -3,6 +3,12 @@
     "name": "LinkZen",
     "version": "1.0.0",
     "description": "Minimalist bookmark launcher and URL audit tool.",
+    "icons": {
+        "16": "icon-16.png",
+        "32": "icon-32.png",
+        "48": "icon-48.png",
+        "128": "icon-128.png"
+    },
     "permissions": [
         "bookmarks",
         "storage",
@@ -18,6 +24,11 @@
     },
     "action": {
         "default_popup": "src/popup/index.html",
-        "default_icon": "icon.png"
+        "default_icon": {
+            "16": "icon-16.png",
+            "32": "icon-32.png",
+            "48": "icon-48.png",
+            "128": "icon-128.png"
+        }
     }
 }

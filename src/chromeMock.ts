@@ -1,12 +1,18 @@
 import type {
+	AuditCancelRequest,
+	AuditCancelResponse,
 	AuditProgress,
 	AuditRequest,
 	AuditResponse,
+	AuditStatusRequest,
+	AuditStatusResponse,
 	AuditSummary,
 	BookmarkCheck,
 } from './types';
 import {
+	MESSAGE_AUDIT_CANCEL,
 	MESSAGE_AUDIT_RUN,
+	MESSAGE_AUDIT_STATUS,
 	STORAGE_KEY_ITEMS,
 	STORAGE_KEY_PROGRESS,
 	STORAGE_KEY_SUMMARY,
@@ -76,6 +82,14 @@ const MOCK_ITEMS: BookmarkCheck[] = [
 		status: 'skipped',
 		note: 'Non-http URL',
 	},
+	{
+		id: 'bm9',
+		title: '',
+		url: 'https://example.com/icon-only',
+		status: 'untitled',
+		httpStatus: 200,
+		note: 'Bookmark has no title (icon only)',
+	},
 ];
 
 const MOCK_SUMMARY: AuditSummary = {
@@ -84,6 +98,7 @@ const MOCK_SUMMARY: AuditSummary = {
 	broken: 3,
 	suspicious: 2,
 	skipped: 1,
+	untitled: 1,
 	checkedAt: Date.now(),
 	durationMs: 1234,
 };
@@ -103,6 +118,9 @@ const store = new Map<string, unknown>([
 	[STORAGE_KEY_PROGRESS, { running: false, checked: 0, total: 0 } satisfies AuditProgress],
 ]);
 const listeners = new Set<StorageListener>();
+let mockRunning = false;
+let mockChecked = 0;
+let mockTick: ReturnType<typeof setTimeout> | null = null;
 
 function setValue(key: string, value: unknown): void {
 	const oldValue = store.get(key);
@@ -113,21 +131,54 @@ function setValue(key: string, value: unknown): void {
 }
 
 function runMockAudit(): void {
-	let checked = 0;
-	const total = 20;
+	const total = MOCK_ITEMS.length;
+	mockRunning = true;
+	mockChecked = 0;
 	const tick = () => {
-		checked = Math.min(checked + 4, total);
+		mockChecked = Math.min(mockChecked + 1, total);
+		const running = mockChecked < total;
 		setValue(
 			STORAGE_KEY_PROGRESS,
-			{ running: checked < total, checked, total } satisfies AuditProgress,
+			{ running, checked: mockChecked, total } satisfies AuditProgress,
 		);
-		if (checked < total) {
-			setTimeout(tick, 300);
+		if (running) {
+			mockTick = setTimeout(tick, 250);
 		} else {
+			mockRunning = false;
+			mockTick = null;
 			setValue(STORAGE_KEY_SUMMARY, { ...MOCK_SUMMARY, checkedAt: Date.now() });
 		}
 	};
 	tick();
+}
+
+function cancelMockAudit(): boolean {
+	if (!mockRunning) return false;
+	if (mockTick !== null) clearTimeout(mockTick);
+	mockTick = null;
+	mockRunning = false;
+	const total = MOCK_ITEMS.length;
+	const partial = MOCK_ITEMS.slice(0, Math.max(mockChecked, 1));
+	const count = (status: BookmarkCheck['status']) =>
+		partial.filter((item) => item.status === status).length;
+	setValue(STORAGE_KEY_ITEMS, partial);
+	setValue(STORAGE_KEY_SUMMARY, {
+		total: partial.length,
+		active: count('active'),
+		broken: count('broken'),
+		suspicious: count('suspicious'),
+		skipped: count('skipped'),
+		checkedAt: Date.now(),
+		durationMs: mockChecked * 250,
+		cancelled: true,
+	} satisfies AuditSummary);
+	setValue(STORAGE_KEY_PROGRESS, {
+		running: false,
+		checked: partial.length,
+		total,
+		error: 'Audit cancelled — showing partial results.',
+	} satisfies AuditProgress);
+	return true;
 }
 
 function hasExtensionApis(): boolean {
@@ -168,13 +219,40 @@ if (import.meta.env.DEV && !hasExtensionApis()) {
 		},
 		runtime: {
 			lastError: undefined,
-			sendMessage: (message: AuditRequest, cb?: (response?: AuditResponse) => void) => {
+			sendMessage: (
+				message: AuditRequest | AuditStatusRequest | AuditCancelRequest,
+				cb?: (
+					response?:
+						| AuditResponse
+						| AuditStatusResponse
+						| AuditCancelResponse
+				) => void,
+			) => {
+				if (message?.type === MESSAGE_AUDIT_STATUS) {
+					const progress = (store.get(STORAGE_KEY_PROGRESS) as AuditProgress) ?? {
+						running: false,
+						checked: 0,
+						total: 0,
+					};
+					cb?.({ running: mockRunning, progress });
+					return undefined;
+				}
+				if (message?.type === MESSAGE_AUDIT_CANCEL) {
+					const cancelled = cancelMockAudit();
+					cb?.(
+						cancelled
+							? { ok: true, cancelled: true }
+							: { ok: true, cancelled: false, error: 'No audit is running.' }
+					);
+					return undefined;
+				}
 				if (message?.type === MESSAGE_AUDIT_RUN) {
 					runMockAudit();
 					setTimeout(
 						() => cb?.({ ok: true, summary: { ...MOCK_SUMMARY, checkedAt: Date.now() } }),
-						400,
+						1000,
 					);
+					return undefined;
 				}
 				cb?.();
 				return undefined;
@@ -202,15 +280,16 @@ if (import.meta.env.DEV && !hasExtensionApis()) {
 					syncing: false,
 					children,
 				});
-				cb([
-					folder('0', 'Bookmarks Bar', [
-						folder('f1', 'Favorites', [node('bm1'), node('bm2')]),
-						folder('f2', 'Work', [node('bm3'), node('bm4'), node('bm6')]),
-						node('bm5'),
-						node('bm7'),
-						node('bm8'),
-					]),
-				]);
+			cb([
+				folder('0', 'Bookmarks Bar', [
+					folder('f1', 'Favorites', [node('bm1'), node('bm2')]),
+					folder('f2', 'Work', [node('bm3'), node('bm4'), node('bm6')]),
+					node('bm5'),
+					node('bm7'),
+					node('bm8'),
+					node('bm9'),
+				]),
+			]);
 			},
 			remove: (id: string, cb?: () => void) => {
 				if (bookmarksStore.has(id)) {
